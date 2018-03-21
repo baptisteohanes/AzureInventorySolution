@@ -1,5 +1,5 @@
 {
-  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "0.9.0.0",
     "parameters": {
         "automationAccountName": {
@@ -33,59 +33,59 @@
         "runbookUri": "https://raw.githubusercontent.com/baptisteohanes/AzureQuotasMonitoring/master/runbooks/AzureQuotasMonitor_Runbook.ps1"
     },
     "resources": [
-            {
-              "type": "Microsoft.Automation/automationAccounts",
-              "name": "[parameters('automationAccountName')]",
-              "apiVersion": "2015-10-31",
-              "location": "westeurope",
-              "scale": null,
-              "properties": {},
-              "dependsOn": []
-          },
-          {
+        {
+            "type": "Microsoft.Automation/automationAccounts",
+            "name": "[parameters('automationAccountName')]",
+            "apiVersion": "2015-10-31",
+            "location": "westeurope",
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
             "name": "[concat(parameters('automationAccountName'),'/',variables('runbookName'))]",
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
-            "tags": { },
+            "tags": {},
             "properties": {
-              "runbookType": "Script",
-              "logProgress": false,
-              "logVerbose": false,
-              "description": "[variables('runbookDescription')]",
-              "publishContentLink": {
-                "uri": "[variables('runbookUri')]",
-                "version": "1.0.0.0"
-              }
+                "runbookType": "Script",
+                "logProgress": false,
+                "logVerbose": false,
+                "description": "[variables('runbookDescription')]",
+                "publishContentLink": {
+                    "uri": "[variables('runbookUri')]",
+                    "version": "1.0.0.0"
+                }
             }
-          },
-          {
+        },
+        {
             "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitor_WorkspaceId')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
-            "tags": { },
+            "tags": {},
             "properties": {
-              "value": "[parameters('workspaceId')]",
-              "description": "Unique ID pointing the targeted Log Analytics workspace",
-              "isEncrypted": false
+                "value": "[parameters('workspaceId')]",
+                "description": "Unique ID pointing the targeted Log Analytics workspace",
+                "isEncrypted": false
             }
-          },
-          {
+        },
+        {
             "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitor_WorkspaceKey')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
-            "tags": { },
+            "tags": {},
             "properties": {
-              "value": "[parameters('workspaceKey')]",
-              "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
-              "isEncrypted": true
+                "value": "[parameters('workspaceKey')]",
+                "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
+                "isEncrypted": true
             }
-          }
-        ],
+        }
+    ],
     "outputs": {}
 }
