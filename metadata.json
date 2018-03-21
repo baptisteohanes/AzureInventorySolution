@@ -1,0 +1,7 @@
+{
+  "itemDisplayName": "Azure Quotas Monitor",
+  "description": "Tools and script to monitor Azure quotas and usage. This runbook is intended to run in an Azure Automation account and push the data to a Log Analytics cube of your choice.",
+  "summary": "This template creates variables in an already existing Azure Automation runbook.  It then starts the runbook job.",
+  "githubUsername": "bapho",
+  "dateUpdated": "2018-03-21"
+}
