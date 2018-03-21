@@ -33,6 +33,15 @@
         "runbookUri": "https://raw.githubusercontent.com/baptisteohanes/AzureQuotasMonitoring/master/runbooks/AzureQuotasMonitor_Runbook.ps1"
     },
     "resources": [
+            {
+              "type": "Microsoft.Automation/automationAccounts",
+              "name": "[parameters('automationAccountName')]",
+              "apiVersion": "2015-10-31",
+              "location": "westeurope",
+              "scale": null,
+              "properties": {},
+              "dependsOn": []
+          },
           {
             "name": "[concat(parameters('automationAccountName'),'/',variables('runbookName'))]",
             "type": "Microsoft.Automation/automationAccounts/runbooks",
