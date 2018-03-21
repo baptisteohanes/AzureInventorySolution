@@ -38,9 +38,7 @@
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [
-              "[resourceId(parameters('automationAccountResourceGroup'), 'Microsoft.Automation/automationAccounts',parameters('automationAccountName'))]"
-            ],
+            "dependsOn": [],
             "tags": { },
             "properties": {
               "runbookType": "Script",
@@ -58,9 +56,7 @@
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [
-              "[resourceId(parameters('automationAccountResourceGroup'), 'Microsoft.Automation/automationAccounts',parameters('automationAccountName'))]"
-            ],
+            "dependsOn": [],
             "tags": { },
             "properties": {
               "value": "[parameters('workspaceId')]",
@@ -73,9 +69,7 @@
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [
-              "[resourceId(parameters('automationAccountResourceGroup'), 'Microsoft.Automation/automationAccounts',parameters('automationAccountName'))]"
-            ],
+            "dependsOn": [],
             "tags": { },
             "properties": {
               "value": "[parameters('workspaceKey')]",
