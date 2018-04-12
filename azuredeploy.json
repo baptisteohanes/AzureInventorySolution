@@ -44,7 +44,7 @@
         "childRunbookPath": "[concat('/runbooks/',variables('childRunbookName'),'.ps1')]",
         "childRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
         "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]",
-        "automationAccountResourceGroupName":"[resourceGroup().name]"
+        "automationAccountResourceGroupName": "[resourceGroup().name]"
     },
     "resources": [
         {
@@ -61,7 +61,6 @@
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [],
             "tags": {},
             "properties": {
                 "runbookType": "Script",
@@ -72,14 +71,19 @@
                     "uri": "[variables('schedulerRunbookUri')]",
                     "version": "1.0.0.0"
                 }
-            }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ]
         },
         {
             "name": "[concat(parameters('automationAccountName'),'/',variables('childRunbookName'))]",
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
             "tags": {},
             "properties": {
                 "runbookType": "Script",
@@ -97,7 +101,9 @@
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
             "tags": {},
             "properties": {
                 "value": "[parameters('automationAccountName')]",
@@ -110,7 +116,9 @@
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
             "tags": {},
             "properties": {
                 "value": "[variables('automationAccountResourceGroupName')]",
@@ -123,7 +131,9 @@
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
             "tags": {},
             "properties": {
                 "value": "[parameters('logAnalyticsWorkspaceId')]",
@@ -136,7 +146,9 @@
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
-            "dependsOn": [],
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
             "tags": {},
             "properties": {
                 "value": "[parameters('logAnalyticsWorkspaceKey')]",
