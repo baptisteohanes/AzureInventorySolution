@@ -8,42 +8,56 @@
                 "description": "The name of the Azure Automation account to deploy to."
             }
         },
-        "automationAccountResourceGroup": {
-            "type": "string",
-            "metadata": {
-                "description": "The name of the resource group where the Azure Automation account resides."
-            }
-        },
-        "workspaceId": {
+        "logAnalyticsWorkspaceId": {
             "type": "string",
             "metadata": {
                 "description": "The username for the Azure Automation credential."
             }
         },
-        "workspaceKey": {
+        "logAnalyticsWorkspaceKey": {
             "type": "securestring",
             "metadata": {
                 "description": "The password for the Azure Automation credential."
             }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/baptisteohanes/AzureQuotasMonitoring/master",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located, WITHOUT a / at the end"
+            }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated."
+            }
         }
     },
     "variables": {
-        "runbookName": "AzureQuotasMonitor_Runbook",
-        "runbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
-        "runbookUri": "https://raw.githubusercontent.com/baptisteohanes/AzureQuotasMonitoring/master/runbooks/AzureQuotasMonitor_Runbook.ps1"
+        "schedulerRunbookName": "AzureQuotasMonitorSolution_Scheduler",
+        "schedulerRunbookPath": "[concat('/runbooks/',variables('schedulerRunbookName'),'.ps1')]",
+        "schedulerRunbookDescription": "Authenticates to Azure and list the subscriptions reachable by the service principal",
+        "schedulerRunbookUri": "[concat(parameters('_artifactsLocation'),variables('schedulerRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "childRunbookName": "AzureQuotasMonitorSolution_Child",
+        "childRunbookPath": "[concat('/runbooks/',variables('childRunbookName'),'.ps1')]",
+        "childRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
+        "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "automationAccountResourceGroupName":"[resourceGroup().name]"
     },
     "resources": [
         {
             "type": "Microsoft.Automation/automationAccounts",
             "name": "[parameters('automationAccountName')]",
             "apiVersion": "2015-10-31",
-            "location": "westeurope",
+            "location": "[resourceGroup().location]",
             "scale": null,
             "properties": {},
             "dependsOn": []
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/',variables('runbookName'))]",
+            "name": "[concat(parameters('automationAccountName'),'/',variables('schedulerRunbookName'))]",
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
@@ -53,35 +67,79 @@
                 "runbookType": "Script",
                 "logProgress": false,
                 "logVerbose": false,
-                "description": "[variables('runbookDescription')]",
+                "description": "[variables('schedulerRunbookDescription')]",
                 "publishContentLink": {
-                    "uri": "[variables('runbookUri')]",
+                    "uri": "[variables('schedulerRunbookUri')]",
                     "version": "1.0.0.0"
                 }
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitor_WorkspaceId')]",
+            "name": "[concat(parameters('automationAccountName'),'/',variables('childRunbookName'))]",
+            "type": "Microsoft.Automation/automationAccounts/runbooks",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "runbookType": "Script",
+                "logProgress": false,
+                "logVerbose": false,
+                "description": "[variables('childRunbookDescription')]",
+                "publishContentLink": {
+                    "uri": "[variables('childRunbookUri')]",
+                    "version": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AutomationAccountName')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
             "tags": {},
             "properties": {
-                "value": "[parameters('workspaceId')]",
+                "value": "[parameters('automationAccountName')]",
+                "description": "Automation Account name used to launch child runbook",
+                "isEncrypted": false
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution__AutomationAccountResourceGroupName')]",
+            "type": "Microsoft.Automation/automationAccounts/variables",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "value": "[variables('automationAccountResourceGroupName')]",
+                "description": "Automation Account resource group name used to launch child runbook",
+                "isEncrypted": false
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_WorkspaceId')]",
+            "type": "Microsoft.Automation/automationAccounts/variables",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "value": "[parameters('logAnalyticsWorkspaceId')]",
                 "description": "Unique ID pointing the targeted Log Analytics workspace",
                 "isEncrypted": false
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitor_WorkspaceKey')]",
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_WorkspaceKey')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
             "tags": {},
             "properties": {
-                "value": "[parameters('workspaceKey')]",
+                "value": "[parameters('logAnalyticsWorkspaceKey')]",
                 "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
                 "isEncrypted": true
             }

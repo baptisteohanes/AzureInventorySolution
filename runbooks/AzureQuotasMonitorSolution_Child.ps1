@@ -9,7 +9,11 @@
         THE SAMPLE CODE BELOW IS GIVEN “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MICROSOFT OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) SUSTAINED BY YOU OR A THIRD PARTY, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT ARISING IN ANY WAY OUT OF THE USE OF THIS SAMPLE CODE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #>
 
-#$ErrorActionPreference = "Stop"
+# Script parameters definition
+
+param (
+    [Parameter(Mandatory=$true)] [string] $SubscriptionId
+)
 
 # Functions used to create the authorization signature, create the request and post it
 
@@ -58,7 +62,7 @@ Function Post-OMSData($workspaceId, $workspaceKey, $body, $logType, $timeGenerat
     return $response.StatusCode
 }
 
-#Connect to the analyzed subscription
+# Connect to the analyzed subscription
 
 $connectionName = "AzureRunAsConnection"
 
@@ -70,7 +74,8 @@ try
         -ServicePrincipal `
         -TenantId $servicePrincipalConnection.TenantId `
         -ApplicationId $servicePrincipalConnection.ApplicationId `
-        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint
+        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint `
+        -SubscriptionId $SubscriptionId
 }
 catch {
     if (!$servicePrincipalConnection)
@@ -85,9 +90,9 @@ catch {
 
 # Get OMS settings from assets
 
-$workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitor_WorkspaceId'
+$workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
 Write-Output "OMS Workspace ID: $workspaceId"
-$workspaceKey = Get-AutomationVariable -Name 'AzureQuotasMonitor_WorkspaceKey'
+$workspaceKey = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceKey'
 
 # Get current time
 
@@ -101,7 +106,7 @@ $azureLocations = Get-AzureRmLocation
 
 # Gets the virtual machine core count usage for all locations
 
-$computeLogType = "AzureQuotaMonitor_ComputeUsage"
+$computeLogType = "AzureQuotaMonitorSolution_ComputeQuota"
 $computeResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmVMUsage |
         Select-Object -Property `
@@ -117,7 +122,7 @@ Write-Output $computeJson
 
 # Gets the Storage resource usage
 
-$storageLogType = "AzureQuotaMonitor_StorageUsage"
+$storageLogType = "AzureQuotaMonitorSolution_StorageQuota"
 $storageResult = Get-AzureRmStorageUsage |
     Select-Object -Property `
         @{N='CurrentValue';E={$_.CurrentValue}}, `
@@ -130,7 +135,7 @@ Write-Output $storageJson
 
 # Lists network usages for all locations
 
-$networkLogType = "AzureQuotaMonitor_NetworkUsage"
+$networkLogType = "AzureQuotaMonitorSolution_NetworkQuota"
 $networkResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmNetworkUsage |
         Select-Object -Property `
@@ -146,7 +151,8 @@ Write-Output $networkJson
 
 
 # Submit the data to the OMS API endpoint
-
+<#
 Post-OMSData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($computeJson)) -logType $computeLogType -timeGeneratedField $timeGeneratedField
 Post-OMSData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($networkJson)) -logType $networkLogType -timeGeneratedField $timeGeneratedField
 Post-OMSData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($storageJson)) -logType $storageLogType -timeGeneratedField $timeGeneratedField
+#>
