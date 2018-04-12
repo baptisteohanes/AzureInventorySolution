@@ -5,13 +5,10 @@
     "automationAccountName": {
       "value": "AzureQuotasMonitor-AutomationAccount"
     },
-    "automationAccountResourceGroup": {
-      "value": "AzureQuotasMonitor"
-    },
-    "workspaceId": {
+    "logAnalyticsWorkspaceId": {
       "value": "00000000-0000-0000-0000-000000000000"
     },
-    "workspaceKey": {
+    "logAnalyticsWorkspaceKey": {
       "value": "4LNThLM8ftTDL5DtgzQjwS+xZW3DP+neSOkTWcfiEBQ9cDVfoFcwWLgWQV0JdnybaAVpl+7tJHdkGMasNmnKYg=="
     }
   }
