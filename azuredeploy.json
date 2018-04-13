@@ -99,7 +99,7 @@
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AAName')]",
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AARGName')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
@@ -115,7 +115,7 @@
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AARGName')]",
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AAName')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",

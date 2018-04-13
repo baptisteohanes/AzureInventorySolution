@@ -22,7 +22,7 @@ Write-Output $automationAccountName
 Write-Output $automationAccountResourceGroupName
 Write-Output $childRunBookName
 
-Write-Output $childRunBookName "Trying to connect to the master subscription"
+Write-Output "Trying to connect to the master subscription"
 
 try
 {
@@ -33,6 +33,8 @@ try
         -TenantId $servicePrincipalConnection.TenantId `
         -ApplicationId $servicePrincipalConnection.ApplicationId `
         -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint
+
+    Write-Output "Connection confirmed"
 }
 catch {
     if (!$servicePrincipalConnection)
@@ -55,5 +57,5 @@ Write-Output $subscriptions
 
 foreach($subscription in $subscriptions){
     $params = @{"SubscriptionId"=$subscription.Id}
-    Start-AzureRmAutomationRunbook -ResourceGroupName  $automationAccountResourceGroupName -AutomationAccountName $automationAccountName -Name $childRunBookName -Parameters $params
+    Start-AzureRmAutomationRunbook -ResourceGroupName $automationAccountResourceGroupName -AutomationAccountName $automationAccountName -Name $childRunBookName -Parameters $params
 }
