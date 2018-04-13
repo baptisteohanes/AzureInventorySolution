@@ -43,7 +43,9 @@
         "childRunbookName": "AzureQuotasMonitorSolution_Child",
         "childRunbookPath": "[concat('/runbooks/',variables('childRunbookName'),'.ps1')]",
         "childRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
-        "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]"
+        "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "scheduleName": "AzureQuotasMonitorSolution_Scheduler",
+        "jobScheduleName": "[guid(resourceGroup().id)]"
     },
     "resources": [
         {
@@ -57,78 +59,6 @@
                     "name":"Basic"
                 }           },
             "dependsOn": []
-        },
-        {
-            "name": "[concat(parameters('automationAccountName'),'/',variables('schedulerRunbookName'))]",
-            "type": "Microsoft.Automation/automationAccounts/runbooks",
-            "apiVersion": "2015-10-31",
-            "location": "[resourceGroup().location]",
-            "tags": {},
-            "properties": {
-                "runbookType": "PowerShell",
-                "logProgress": false,
-                "logVerbose": false,
-                "description": "[variables('schedulerRunbookDescription')]",
-                "publishContentLink": {
-                    "uri": "[variables('schedulerRunbookUri')]",
-                    "version": "1.0.0.0"
-                }
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
-            ]
-        },
-        {
-            "name": "[concat(parameters('automationAccountName'),'/',variables('childRunbookName'))]",
-            "type": "Microsoft.Automation/automationAccounts/runbooks",
-            "apiVersion": "2015-10-31",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
-            ],
-            "tags": {},
-            "properties": {
-                "runbookType": "PowerShell",
-                "logProgress": false,
-                "logVerbose": false,
-                "description": "[variables('childRunbookDescription')]",
-                "publishContentLink": {
-                    "uri": "[variables('childRunbookUri')]",
-                    "version": "1.0.0.0"
-                }
-            }
-        },
-        {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AARGName')]",
-            "type": "Microsoft.Automation/automationAccounts/variables",
-            "apiVersion": "2015-10-31",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
-            ],
-            "tags": {},
-            "properties": {
-                "type": "string",
-                "value": "[concat('\"',resourceGroup().name,'\"')]",
-                "description": "Automation Account name used to launch child runbook",
-                "isEncrypted": false
-            }
-        },
-        {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AAName')]",
-            "type": "Microsoft.Automation/automationAccounts/variables",
-            "apiVersion": "2015-10-31",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
-            ],
-            "tags": {},
-            "properties": {
-                "type": "string",
-                "value": "[concat('\"',parameters('automationAccountName'),'\"')]",
-                "description": "Automation Account resource group name used to launch child runbook",
-                "isEncrypted": false
-            }
         },
         {
             "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_WorkspaceId')]",
@@ -161,7 +91,45 @@
                 "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
                 "isEncrypted": true
             }
+        },
+        {
+            "name": "[variables('scheduleName')]",
+            "type": "Microsoft.Automation/automationAccounts/schedules",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "tags": {},
+            "properties": {
+                "description": "Azure inventory runbook execution frequency",
+                "startTime": "",
+                "isEnabled": "true",
+                "interval": 1,
+                "frequency": "Hour"
+            }
+        },
+        {
+            "name": "[variables('jobScheduleName')]",
+            "type": "Microsoft.Automation/automationAccounts/jobSchedules",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
+                "[concat(resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName')), '/runbooks/', variables('schedulerRunbookName'))]",
+                "[concat(resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName')), '/schedules/', variables('scheduleName'))]"
+            ],
+            "tags": {},
+            "properties": {
+                "schedule": {
+                    "name": "[variables('scheduleName')]"
+                  },
+                  "runbook": {
+                    "name": "[variables('schedulerRunbookName')]"
+                  }
+            }
         }
+
     ],
     "outputs": {}
 }
