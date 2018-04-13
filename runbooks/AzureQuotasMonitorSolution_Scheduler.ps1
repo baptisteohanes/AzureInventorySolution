@@ -13,8 +13,16 @@
 
 $connectionName = "AzureRunAsConnection"
 $automationAccountName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AAName"
-$automationAccountResourceGroupName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AARG"
+$automationAccountResourceGroupName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AARGName"
 $childRunBookName = "AzureQuotasMonitorSolution_Child"
+
+Write-Output "Following parameters will be used :"
+Write-Output $connectionName
+Write-Output $automationAccountName
+Write-Output $automationAccountResourceGroupName
+Write-Output $childRunBookName
+
+Write-Output $childRunBookName "Trying to connect to the master subscription"
 
 try
 {
