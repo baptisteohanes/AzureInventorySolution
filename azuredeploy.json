@@ -43,8 +43,7 @@
         "childRunbookName": "AzureQuotasMonitorSolution_Child",
         "childRunbookPath": "[concat('/runbooks/',variables('childRunbookName'),'.ps1')]",
         "childRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
-        "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]",
-        "automationAccountResourceGroupName": "[resourceGroup().name]"
+        "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]"
     },
     "resources": [
         {
@@ -100,7 +99,7 @@
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AutomationAccountName')]",
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AAName')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
@@ -109,13 +108,14 @@
             ],
             "tags": {},
             "properties": {
-                "value": "[parameters('automationAccountName')]",
+                "type": "string",
+                "value": "[concat('\"',resourceGroup().name,'\"')]",
                 "description": "Automation Account name used to launch child runbook",
                 "isEncrypted": false
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution__AutomationAccountResourceGroupName')]",
+            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_AARGName')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
@@ -124,7 +124,8 @@
             ],
             "tags": {},
             "properties": {
-                "value": "[variables('automationAccountResourceGroupName')]",
+                "type": "string",
+                "value": "[concat('\"',parameters('automationAccountName'),'\"')]",
                 "description": "Automation Account resource group name used to launch child runbook",
                 "isEncrypted": false
             }
@@ -139,6 +140,7 @@
             ],
             "tags": {},
             "properties": {
+                "type": "string",
                 "value": "[parameters('logAnalyticsWorkspaceId')]",
                 "description": "Unique ID pointing the targeted Log Analytics workspace",
                 "isEncrypted": false
@@ -154,6 +156,7 @@
             ],
             "tags": {},
             "properties": {
+                "type": "string",
                 "value": "[parameters('logAnalyticsWorkspaceKey')]",
                 "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
                 "isEncrypted": true

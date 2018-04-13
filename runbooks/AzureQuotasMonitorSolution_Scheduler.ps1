@@ -12,8 +12,8 @@
 #Connect to Azure and list all readable subscriptions
 
 $connectionName = "AzureRunAsConnection"
-$automationAccountName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AutomationAccountName"
-$automationAccountResourceGroupName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AutomationAccountResourceGroupName"
+$automationAccountName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AAName"
+$automationAccountResourceGroupName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AARG"
 $childRunBookName = "AzureQuotasMonitorSolution_Child"
 
 try
