@@ -61,6 +61,46 @@
             "dependsOn": []
         },
         {
+            "name": "[concat(parameters('automationAccountName'),'/',variables('schedulerRunbookName'))]",
+            "type": "Microsoft.Automation/automationAccounts/runbooks",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "properties": {
+                "runbookType": "PowerShell",
+                "logProgress": false,
+                "logVerbose": false,
+                "description": "[variables('schedulerRunbookDescription')]",
+                "publishContentLink": {
+                    "uri": "[variables('schedulerRunbookUri')]",
+                    "version": "1.0.0.0"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/',variables('childRunbookName'))]",
+            "type": "Microsoft.Automation/automationAccounts/runbooks",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "tags": {},
+            "properties": {
+                "runbookType": "PowerShell",
+                "logProgress": false,
+                "logVerbose": false,
+                "description": "[variables('childRunbookDescription')]",
+                "publishContentLink": {
+                    "uri": "[variables('childRunbookUri')]",
+                    "version": "1.0.0.0"
+                }
+            }
+        },
+        {
             "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_WorkspaceId')]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
