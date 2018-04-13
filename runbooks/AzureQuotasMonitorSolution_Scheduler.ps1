@@ -9,20 +9,17 @@
         THE SAMPLE CODE BELOW IS GIVEN “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MICROSOFT OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) SUSTAINED BY YOU OR A THIRD PARTY, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT ARISING IN ANY WAY OUT OF THE USE OF THIS SAMPLE CODE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #>
 
-#Connect to Azure and list all readable subscriptions
+#Set context
 
 $connectionName = "AzureRunAsConnection"
-$automationAccountName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AAName"
-$automationAccountResourceGroupName = Get-AutomationVariable -Name "AzureQuotasMonitorSolution_AARGName"
 $childRunBookName = "AzureQuotasMonitorSolution_Child"
 
 Write-Output "Following parameters will be used :"
-Write-Output $connectionName
-Write-Output $automationAccountName
-Write-Output $automationAccountResourceGroupName
-Write-Output $childRunBookName
-
+Write-Output ("Azure Automation Connection: "+ $connectionName)
+Write-Output ("Child runbook name: "+ $childRunBookName)
 Write-Output "Trying to connect to the master subscription"
+
+#Connect to Azure
 
 try
 {
@@ -32,9 +29,8 @@ try
         -ServicePrincipal `
         -TenantId $servicePrincipalConnection.TenantId `
         -ApplicationId $servicePrincipalConnection.ApplicationId `
-        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint
-
-    Write-Output "Connection confirmed"
+        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint `
+        -Subscription $servicePrincipalConnection.SubscriptionId
 }
 catch {
     if (!$servicePrincipalConnection)
@@ -47,15 +43,21 @@ catch {
     }
 }
 
-#List all subscription
+#List all subscription that can be accessed by the service principal
 
 $subscriptions = Get-AzureRmSubscription
 
-Write-Output $subscriptions
+Write-Output "The following subscriptions will be analyzed:"
 
-#Launch child runbook
+foreach($subscription in $subscriptions){
+    Write-Output $subscription.Name
+}
+
+#Start child runbook instances for each subscription
+
+Write-Output "Launching analyze jobs:"
 
 foreach($subscription in $subscriptions){
     $params = @{"SubscriptionId"=$subscription.Id}
-    Start-AzureRmAutomationRunbook -ResourceGroupName $automationAccountResourceGroupName -AutomationAccountName $automationAccountName -Name $childRunBookName -Parameters $params
+    Start-AutomationRunbook -Name $childRunbookName -Parameters $params
 }
