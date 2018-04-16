@@ -146,7 +146,7 @@
                 "startTime": "",
                 "isEnabled": "true",
                 "interval": 1,
-                "frequency": "Hour"
+                "frequency": "Day"
             }
         },
         {
