@@ -12,28 +12,29 @@
 # Script parameters definition
 
 param (
-    [Parameter(Mandatory=$true)] [string] $SubscriptionId
+    [Parameter(Mandatory = $true)] [string] $SubscriptionId
 )
 
-# Functions used to create the authorization signature, create the request and post it
-
-Function Build-Signature ($workspaceId, $workspaceKey, $date, $contentLength, $method, $contentType, $resource)
+# Create the function to create the authorization signature
+Function Build-Signature ($customerId, $sharedKey, $date, $contentLength, $method, $contentType, $resource)
 {
     $xHeaders = "x-ms-date:" + $date
     $stringToHash = $method + "`n" + $contentLength + "`n" + $contentType + "`n" + $xHeaders + "`n" + $resource
 
     $bytesToHash = [Text.Encoding]::UTF8.GetBytes($stringToHash)
-    $keyBytes = [Convert]::FromBase64String($workspaceKey)
+    $keyBytes = [Convert]::FromBase64String($sharedKey)
 
     $sha256 = New-Object System.Security.Cryptography.HMACSHA256
     $sha256.Key = $keyBytes
     $calculatedHash = $sha256.ComputeHash($bytesToHash)
     $encodedHash = [Convert]::ToBase64String($calculatedHash)
-    $authorization = 'SharedKey {0}:{1}' -f $workspaceId,$encodedHash
+    $authorization = 'SharedKey {0}:{1}' -f $customerId,$encodedHash
     return $authorization
 }
 
-Function Post-OMSData($workspaceId, $workspaceKey, $body, $logType, $timeGeneratedField)
+
+# Create the function to create and post the request
+Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType)
 {
     $method = "POST"
     $contentType = "application/json"
@@ -41,33 +42,33 @@ Function Post-OMSData($workspaceId, $workspaceKey, $body, $logType, $timeGenerat
     $rfc1123date = [DateTime]::UtcNow.ToString("r")
     $contentLength = $body.Length
     $signature = Build-Signature `
-        -customerId $workspaceId `
-        -sharedKey $workspaceKey `
+        -customerId $customerId `
+        -sharedKey $sharedKey `
         -date $rfc1123date `
         -contentLength $contentLength `
         -fileName $fileName `
         -method $method `
         -contentType $contentType `
         -resource $resource
-    $uri = "https://" + $workspaceId + ".ods.opinsights.azure.com" + $resource + "?api-version=2016-04-01"
+    $uri = "https://" + $customerId + ".ods.opinsights.azure.com" + $resource + "?api-version=2016-04-01"
 
     $headers = @{
         "Authorization" = $signature;
         "Log-Type" = $logType;
         "x-ms-date" = $rfc1123date;
-        "time-generated-field" = $timeGeneratedField;
+        "time-generated-field" = $TimeStampField;
     }
 
     $response = Invoke-WebRequest -Uri $uri -Method $method -ContentType $contentType -Headers $headers -Body $body -UseBasicParsing
     return $response.StatusCode
+
 }
 
 # Connect to the analyzed subscription
 
 $connectionName = "AzureRunAsConnection"
 
-try
-{
+try {
     $servicePrincipalConnection = Get-AutomationConnection -Name $connectionName         
 
     $account = Add-AzureRmAccount `
@@ -78,11 +79,11 @@ try
         -SubscriptionId $SubscriptionId
 }
 catch {
-    if (!$servicePrincipalConnection)
-    {
+    if (!$servicePrincipalConnection) {
         $ErrorMessage = "Connection $connectionName not found."
         throw $ErrorMessage
-    } else{
+    }
+    else {
         Write-Error -Message $_.Exception
         throw $_.Exception
     }
@@ -100,59 +101,60 @@ $timeGeneratedField = "Time"
 $currentDate = [System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:00Z")
 Write-Output "Current time is $currentDate."
 
-# Load location
+# Load location and define OMS log type
 
 $azureLocations = Get-AzureRmLocation
+$LogType = "AzureQuotaMonitorSolution"
 
 # Gets the virtual machine core count usage for all locations
 
-$computeLogType = "AzureQuotaMonitorSolution_ComputeQuota"
 $computeResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmVMUsage |
         Select-Object -Property `
-            @{N='CurrentValue';E={$_.CurrentValue}}, `
-            @{N='Limit';E={$_.Limit}}, `
-            @{N='Location';E={$location.Location}}, `
-            @{N='Name';E={$_.Name.Value}}, `
-            @{N='Unit';E={$_.Unit}}, `
-            @{N='Time';E={$currentDate}}
+    @{N = 'Type'; E = {'Compute'}}, `
+    @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
+    @{N = 'Limit'; E = {$_.Limit}}, `
+    @{N = 'Location'; E = {$location.Location}}, `
+    @{N = 'Name'; E = {$_.Name.Value}}, `
+    @{N = 'Unit'; E = {$_.Unit}}, `
+    @{N = 'Time'; E = {$currentDate}}
 }
 $computeJson = $computeResult | ConvertTo-Json -Compress
 Write-Output $computeJson
 
 # Gets the Storage resource usage
 
-$storageLogType = "AzureQuotaMonitorSolution_StorageQuota"
 $storageResult = Get-AzureRmStorageUsage |
     Select-Object -Property `
-        @{N='CurrentValue';E={$_.CurrentValue}}, `
-        @{N='Limit';E={$_.Limit}}, `
-        @{N='Name';E={$_.Name}}, `
-        @{N='Unit';E={$_.Unit}}, `
-        @{N='Time';E={$currentDate}}
+@{N = 'Type'; E = {'Storage'}}, `
+@{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
+@{N = 'Limit'; E = {$_.Limit}}, `
+@{N = 'Location'; E = {'global'}}, `
+@{N = 'Name'; E = {$_.Name}}, `
+@{N = 'Unit'; E = {$_.Unit}}, `
+@{N = 'Time'; E = {$currentDate}}
 $storageJson = $storageResult | ConvertTo-Json -Compress
 Write-Output $storageJson
 
 # Lists network usages for all locations
 
-$networkLogType = "AzureQuotaMonitorSolution_NetworkQuota"
 $networkResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmNetworkUsage |
         Select-Object -Property `
-            @{N='CurrentValue';E={$_.CurrentValue}}, `
-            @{N='Limit';E={$_.Limit}}, `
-            @{N='Location';E={$location.Location}}, `
-            @{N='Name';E={$_.Name.Value}}, `
-            @{N='Unit';E={$_.Unit}}, `
-            @{N='Time';E={$currentDate}}
+    @{N = 'Type'; E = {'Network'}}, `
+    @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
+    @{N = 'Limit'; E = {$_.Limit}}, `
+    @{N = 'Location'; E = {$location.Location}}, `
+    @{N = 'Name'; E = {$_.Name.Value}}, `
+    @{N = 'Unit'; E = {$_.Unit}}, `
+    @{N = 'Time'; E = {$currentDate}}
 }
 $networkJson = $networkResult | ConvertTo-Json -Compress
 Write-Output $networkJson
 
 
 # Submit the data to the OMS API endpoint
-<#
-Post-OMSData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($computeJson)) -logType $computeLogType -timeGeneratedField $timeGeneratedField
-Post-OMSData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($networkJson)) -logType $networkLogType -timeGeneratedField $timeGeneratedField
-Post-OMSData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($storageJson)) -logType $storageLogType -timeGeneratedField $timeGeneratedField
-#>
+
+Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($computeJson)) -logType $LogType -timeGeneratedField $timeGeneratedField
+Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($networkJson)) -logType $LogType -timeGeneratedField $timeGeneratedField
+Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($storageJson)) -logType $LogType -timeGeneratedField $timeGeneratedField
