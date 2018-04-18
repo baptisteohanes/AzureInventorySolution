@@ -38,6 +38,11 @@ catch {
     }
 }
 
+
+Write-Output "The follwoing context will be used:"
+$subscription = Get-AzureRmSubscription -subscriptionId $SubscriptionId
+
+
 $azureLocations = Get-AzureRmLocation
 
 
@@ -98,6 +103,8 @@ $computeResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmVMUsage -ErrorAction SilentlyContinue |
         Select-Object -Property `
     @{N = 'Type'; E = {'Compute'}}, `
+    @{N = 'SubscriptionName'; E = {$subscription.Name}}, `
+    @{N = 'subscriptionId'; E = {$subscription.Id}}, `
     @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
     @{N = 'Limit'; E = {$_.Limit}}, `
     @{N = 'Location'; E = {$location.Location}}, `
@@ -113,11 +120,13 @@ Write-Output $computeJson
 $storageResult = Get-AzureRmStorageUsage -ErrorAction SilentlyContinue |
     Select-Object -Property `
 @{N = 'Type'; E = {'Storage'}}, `
+@{N = 'SubscriptionName'; E = {$subscription.Name}}, `
+@{N = 'subscriptionId'; E = {$subscription.Id}}, `
 @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
 @{N = 'Limit'; E = {$_.Limit}}, `
 @{N = 'Location'; E = {'global'}}, `
 @{N = 'Name'; E = {$_.Name}}, `
-@{N = 'Unit'; E = {$_.Unit}}, `
+@{N = 'Unit'; E = {'Count'}}, `
 @{N = 'Time'; E = {$currentDate}}
 $storageJson = $storageResult | ConvertTo-Json -Compress
 Write-Output $storageJson
@@ -128,6 +137,8 @@ $networkResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmNetworkUsage -ErrorAction SilentlyContinue |
         Select-Object -Property `
     @{N = 'Type'; E = {'Network'}}, `
+    @{N = 'SubscriptionName'; E = {$subscription.Name}}, `
+    @{N = 'subscriptionId'; E = {$subscription.Id}}, `
     @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
     @{N = 'Limit'; E = {$_.Limit}}, `
     @{N = 'Location'; E = {$location.Location}}, `
