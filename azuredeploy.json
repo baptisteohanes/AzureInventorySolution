@@ -111,7 +111,7 @@
             "tags": {},
             "properties": {
                 "type": "string",
-                "value": "[parameters('logAnalyticsWorkspaceId')]",
+                "value": "[concat('\"', parameters('logAnalyticsWorkspaceId'),'\"')]",
                 "description": "Unique ID pointing the targeted Log Analytics workspace",
                 "isEncrypted": false
             }
@@ -127,7 +127,7 @@
             "tags": {},
             "properties": {
                 "type": "string",
-                "value": "[parameters('logAnalyticsWorkspaceKey')]",
+                "value": "[concat('\"', parameters('logAnalyticsWorkspaceKey'),'\"')]",
                 "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
                 "isEncrypted": true
             }
