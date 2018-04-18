@@ -9,51 +9,18 @@
         THE SAMPLE CODE BELOW IS GIVEN “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MICROSOFT OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) SUSTAINED BY YOU OR A THIRD PARTY, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT ARISING IN ANY WAY OUT OF THE USE OF THIS SAMPLE CODE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #>
 
+##############
+# Parameters #
+##############
+
 Param(
     [Parameter(Mandatory = $true)] [string] $subscriptionId,
     [Parameter(Mandatory = $true)] [string] $subscriptionName
 )
 
-# Set context for child script execution
-
-$workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
-$workspaceKey = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceKey'
-
-Write-Output "The following context will be used:"
-Write-Output "Subscription Name: $subscriptionName"
-Write-Output "OMS Workspace ID: $workspaceId"
-
-# Specify the name of the record type that you'll be creating and the field with the created time for the records
-
-$LogType = "AzureQuotaMonitorSolution"
-$TimeStampField = "Time"
-
-
-#Connect to the subscription
-
-$connectionName = "AzureRunAsConnection"
-
-try {
-    $servicePrincipalConnection = Get-AutomationConnection -Name $connectionName         
-
-    $account = Add-AzureRmAccount `
-        -ServicePrincipal `
-        -TenantId $servicePrincipalConnection.TenantId `
-        -ApplicationId $servicePrincipalConnection.ApplicationId `
-        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint `
-        -SubscriptionId $SubscriptionId
-}
-catch {
-    if (!$servicePrincipalConnection) {
-        $ErrorMessage = "Connection $connectionName not found."
-        throw $ErrorMessage
-    }
-    else {
-        Write-Error -Message $_.Exception
-        throw $_.Exception
-    }
-}
-
+#############
+# Functions #
+#############
 
 # Create the function to create the authorization signature
 Function Build-Signature ($customerId, $sharedKey, $date, $contentLength, $method, $contentType, $resource)
@@ -104,6 +71,52 @@ Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType, $timeGe
 
 }
 
+########
+# Main #
+########
+
+# Set context for child script execution
+
+$workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
+$workspaceKey = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceKey'
+
+Write-Output "The following context will be used:"
+Write-Output "Subscription Name: $subscriptionName"
+Write-Output "OMS Workspace ID: $workspaceId"
+
+# Specify the name of the record type that you'll be creating and the field with the created time for the records
+
+$LogType = "AzureQuotaMonitorSolution"
+$TimeStampField = "Time"
+
+# Connect to the subscription
+
+$connectionName = "AzureRunAsConnection"
+
+try {
+    $servicePrincipalConnection = Get-AutomationConnection -Name $connectionName         
+
+    $account = Add-AzureRmAccount `
+        -ServicePrincipal `
+        -TenantId $servicePrincipalConnection.TenantId `
+        -ApplicationId $servicePrincipalConnection.ApplicationId `
+        -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint `
+        -SubscriptionId $SubscriptionId
+}
+catch {
+    if (!$servicePrincipalConnection) {
+        $ErrorMessage = "Connection $connectionName not found."
+        throw $ErrorMessage
+    }
+    else {
+        Write-Error -Message $_.Exception
+        throw $_.Exception
+    }
+}
+
+
+# Execution context definition
+
 $azureLocations = Get-AzureRmLocation
 $currentDate = [System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:00Z")
 
@@ -112,7 +125,7 @@ $currentDate = [System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:00Z")
 $computeResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmVMUsage -ErrorAction SilentlyContinue |
         Select-Object -Property `
-    @{N = 'Type'; E = {'Compute'}}, `
+    @{N = 'Provider'; E = {'Compute'}}, `
     @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
     @{N = 'subscriptionId'; E = {$subscriptionId}}, `
     @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
@@ -129,7 +142,7 @@ Write-Output $computeJson
 
 $storageResult = Get-AzureRmStorageUsage -ErrorAction SilentlyContinue |
     Select-Object -Property `
-@{N = 'Type'; E = {'Storage'}}, `
+@{N = 'Provider'; E = {'Storage'}}, `
 @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
 @{N = 'subscriptionId'; E = {$subscriptionId}}, `
 @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
@@ -146,7 +159,7 @@ Write-Output $storageJson
 $networkResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmNetworkUsage -ErrorAction SilentlyContinue |
         Select-Object -Property `
-    @{N = 'Type'; E = {'Network'}}, `
+    @{N = 'Provider'; E = {'Network'}}, `
     @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
     @{N = 'subscriptionId'; E = {$subscriptionId}}, `
     @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
@@ -158,7 +171,6 @@ $networkResult = foreach ($location in $azureLocations) {
 }
 $networkJson = $networkResult | ConvertTo-Json -Compress
 Write-Output $networkJson
-
 
 # Submit the data to the API endpoint
 Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($storageJson)) -logType $logType -timeGeneratedField $timeStampField
