@@ -1,6 +1,6 @@
 <#
     .DESCRIPTION
-        A runbook that gets detailed information about Azure usages and quotas, and sends it to Operations Management Suite (OMS)
+        A scheduler runbook that lists the subscriptions to analyze and lauch the corresponding child runbook.
 
     .NOTES
         AUTHOR: Baptiste Ohanes
@@ -13,11 +13,13 @@
 
 $connectionName = "AzureRunAsConnection"
 $childRunBookName = "AzureQuotasMonitorSolution_Child"
+$workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
 
 Write-Output "Following parameters will be used :"
 Write-Output ("Azure Automation Connection: "+ $connectionName)
 Write-Output ("Child runbook name: "+ $childRunBookName)
-Write-Output "Trying to connect to the master subscription"
+Write-Output "OMS Workspace ID: $workspaceId"
+Write-Output "Trying to connect to the master subscription..."
 
 #Connect to Azure
 
@@ -31,7 +33,9 @@ try
         -ApplicationId $servicePrincipalConnection.ApplicationId `
         -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint `
         -Subscription $servicePrincipalConnection.SubscriptionId
-}
+    
+    Write-Output "Connected to the master subscription"
+}   
 catch {
     if (!$servicePrincipalConnection)
     {
@@ -55,9 +59,12 @@ foreach($subscription in $subscriptions){
 
 #Start child runbook instances for each subscription
 
+#Get-Member -inputobject $workspaceId
+
+
 Write-Output "Launching analyze jobs:"
 
 foreach($subscription in $subscriptions){
-    $params = @{"SubscriptionId"=$subscription.Id}
+    $params = @{"subscriptionId"=$subscription.Id; "subscriptionName"=$subscription.Name}
     Start-AutomationRunbook -Name $childRunbookName -Parameters $params
 }

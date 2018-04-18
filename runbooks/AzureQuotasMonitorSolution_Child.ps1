@@ -1,19 +1,35 @@
+<#
+    .DESCRIPTION
+        This child runbook gets detailed information about Azure quotas for a specific subscription, and sends it to Operations Management Suite (OMS)
+
+    .NOTES
+        AUTHOR: Baptiste Ohanes
+
+    .DISCLAIMER
+        THE SAMPLE CODE BELOW IS GIVEN “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL MICROSOFT OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) SUSTAINED BY YOU OR A THIRD PARTY, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT ARISING IN ANY WAY OUT OF THE USE OF THIS SAMPLE CODE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#>
+
 Param(
-    [Parameter(Mandatory = $true)] [string] $SubscriptionId
+    [Parameter(Mandatory = $true)] [string] $subscriptionId,
+    [Parameter(Mandatory = $true)] [string] $subscriptionName
 )
 
-# Get OMS settings from assets
+# Set context for child script execution
 
 $workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
-Write-Output "OMS Workspace ID: $workspaceId"
 $workspaceKey = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceKey'
 
+Write-Output "The following context will be used:"
+Write-Output "Subscription Name: $subscriptionName"
+Write-Output "OMS Workspace ID: $workspaceId"
 
-# Specify the name of the record type that you'll be creating
+# Specify the name of the record type that you'll be creating and the field with the created time for the records
+
 $LogType = "AzureQuotaMonitorSolution"
-
-# Specify a field with the created time for the records
 $TimeStampField = "Time"
+
+
+#Connect to the subscription
 
 $connectionName = "AzureRunAsConnection"
 
@@ -37,13 +53,6 @@ catch {
         throw $_.Exception
     }
 }
-
-
-Write-Output "The follwoing context will be used:"
-$subscription = Get-AzureRmSubscription -subscriptionId $SubscriptionId
-
-
-$azureLocations = Get-AzureRmLocation
 
 
 # Create the function to create the authorization signature
@@ -95,6 +104,7 @@ Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType, $timeGe
 
 }
 
+$azureLocations = Get-AzureRmLocation
 $currentDate = [System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:00Z")
 
 # Gets the virtual machine core count usage for all locations
@@ -103,8 +113,8 @@ $computeResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmVMUsage -ErrorAction SilentlyContinue |
         Select-Object -Property `
     @{N = 'Type'; E = {'Compute'}}, `
-    @{N = 'SubscriptionName'; E = {$subscription.Name}}, `
-    @{N = 'subscriptionId'; E = {$subscription.Id}}, `
+    @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
+    @{N = 'subscriptionId'; E = {$subscriptionId}}, `
     @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
     @{N = 'Limit'; E = {$_.Limit}}, `
     @{N = 'Location'; E = {$location.Location}}, `
@@ -120,8 +130,8 @@ Write-Output $computeJson
 $storageResult = Get-AzureRmStorageUsage -ErrorAction SilentlyContinue |
     Select-Object -Property `
 @{N = 'Type'; E = {'Storage'}}, `
-@{N = 'SubscriptionName'; E = {$subscription.Name}}, `
-@{N = 'subscriptionId'; E = {$subscription.Id}}, `
+@{N = 'SubscriptionName'; E = {$subscriptionName}}, `
+@{N = 'subscriptionId'; E = {$subscriptionId}}, `
 @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
 @{N = 'Limit'; E = {$_.Limit}}, `
 @{N = 'Location'; E = {'global'}}, `
@@ -137,8 +147,8 @@ $networkResult = foreach ($location in $azureLocations) {
     $location | Get-AzureRmNetworkUsage -ErrorAction SilentlyContinue |
         Select-Object -Property `
     @{N = 'Type'; E = {'Network'}}, `
-    @{N = 'SubscriptionName'; E = {$subscription.Name}}, `
-    @{N = 'subscriptionId'; E = {$subscription.Id}}, `
+    @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
+    @{N = 'subscriptionId'; E = {$subscriptionId}}, `
     @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
     @{N = 'Limit'; E = {$_.Limit}}, `
     @{N = 'Location'; E = {$location.Location}}, `
