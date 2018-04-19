@@ -16,13 +16,15 @@
 # Global context definiton
 
 $connectionName = "AzureRunAsConnection"
-$childRunBookName = "AzureQuotasMonitorSolution_Child"
+$childQuotasRunbookName = "AzureQuotasMonitorSolution_Quotas_Child"
+$childAssetsRunbookName = "AzureQuotasMonitorSolution_Assets_Child"
 $workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
 
 Write-Output "Following parameters will be used :"
-Write-Output ("Azure Automation Connection: "+ $connectionName)
-Write-Output ("Child runbook name: "+ $childRunBookName)
-Write-Output "OMS Workspace ID: $workspaceId"
+Write-Output ("Azure Automation connection: "+ $connectionName)
+Write-Output ("Child runbook name for quotas: "+ $childQuotasRunbookName)
+Write-Output ("Child runbook name for assets: "+ $childAssetsRunbookName)
+Write-Output "OMS Workspace Id: $workspaceId"
 Write-Output "Trying to connect to the master subscription..."
 
 # Connect to Azure
@@ -67,5 +69,7 @@ Write-Output "Launching analyze jobs:"
 
 foreach($subscription in $subscriptions){
     $params = @{"subscriptionId"=$subscription.Id; "subscriptionName"=$subscription.Name}
-    Start-AutomationRunbook -Name $childRunbookName -Parameters $params
+    Start-AutomationRunbook -Name $childQuotasRunbookName -Parameters $params
+    Start-AutomationRunbook -Name $childAssetsRunbookName -Parameters $params
+    
 }

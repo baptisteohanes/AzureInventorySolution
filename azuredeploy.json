@@ -40,10 +40,14 @@
         "schedulerRunbookPath": "[concat('/runbooks/',variables('schedulerRunbookName'),'.ps1')]",
         "schedulerRunbookDescription": "Authenticates to Azure and list the subscriptions reachable by the service principal",
         "schedulerRunbookUri": "[concat(parameters('_artifactsLocation'),variables('schedulerRunbookPath'),parameters('_artifactsLocationSasToken'))]",
-        "childRunbookName": "AzureQuotasMonitorSolution_Child",
-        "childRunbookPath": "[concat('/runbooks/',variables('childRunbookName'),'.ps1')]",
-        "childRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
-        "childRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "childQuotasRunbookName": "AzureQuotasMonitorSolution_Quotas_Child",
+        "childQuotasRunbookPath": "[concat('/runbooks/',variables('childQuotasRunbookName'),'.ps1')]",
+        "childQuotasRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
+        "childQuotasRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childQuotasRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "childAssetsRunbookName": "AzureQuotasMonitorSolution_Assets_Child",
+        "childAssetsRunbookPath": "[concat('/runbooks/',variables('childAssetsRunbookName'),'.ps1')]",
+        "childAssetsRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
+        "childAssetsRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childAssetsRunbookPath'),parameters('_artifactsLocationSasToken'))]",
         "scheduleName": "AzureQuotasMonitorSolution_Scheduler",
         "jobScheduleName": "[guid(resourceGroup().id)]"
     },
@@ -81,7 +85,7 @@
             ]
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/',variables('childRunbookName'))]",
+            "name": "[concat(parameters('automationAccountName'),'/',variables('childQuotasRunbookName'))]",
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
@@ -93,9 +97,29 @@
                 "runbookType": "PowerShell",
                 "logProgress": false,
                 "logVerbose": false,
-                "description": "[variables('childRunbookDescription')]",
+                "description": "[variables('childQuotasRunbookDescription')]",
                 "publishContentLink": {
-                    "uri": "[variables('childRunbookUri')]",
+                    "uri": "[variables('childQuotasRunbookUri')]",
+                    "version": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/',variables('childAssetsRunbookName'))]",
+            "type": "Microsoft.Automation/automationAccounts/runbooks",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ],
+            "tags": {},
+            "properties": {
+                "runbookType": "PowerShell",
+                "logProgress": false,
+                "logVerbose": false,
+                "description": "[variables('childAssetsRunbookDescription')]",
+                "publishContentLink": {
+                    "uri": "[variables('childAssetsRunbookUri')]",
                     "version": "1.0.0.0"
                 }
             }
