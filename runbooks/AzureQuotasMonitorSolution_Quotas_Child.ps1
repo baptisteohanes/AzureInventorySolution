@@ -20,7 +20,7 @@ Param(
 
 #############
 # Functions #
-#############
+#############get-azure
 
 # Create the function to create the authorization signature
 Function Build-Signature ($customerId, $sharedKey, $date, $contentLength, $method, $contentType, $resource)

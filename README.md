@@ -6,7 +6,7 @@ Tools and script to monitor Azure quotas and usage. This runbook is intended to 
 
 ## Prerequistes
 
-To run this script, you'll need :
+To run this tool, you'll need :
 
 - a Log Analytics workspace, with is WorkspaceID and Access Key
 
