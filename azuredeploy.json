@@ -2,22 +2,23 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "0.9.0.0",
     "parameters": {
+        "deploymentPrefix": {
+            "type": "string",
+            "defaultValue" :"",
+            "metadata": {
+                "description": "The name of the Azure Automation account to deploy to."
+            }
+        },
         "automationAccountName": {
             "type": "string",
             "metadata": {
                 "description": "The name of the Azure Automation account to deploy to."
             }
         },
-        "logAnalyticsWorkspaceId": {
+        "logAnalyticsWorkspaceName": {
             "type": "string",
             "metadata": {
                 "description": "The username for the Azure Automation credential."
-            }
-        },
-        "logAnalyticsWorkspaceKey": {
-            "type": "securestring",
-            "metadata": {
-                "description": "The password for the Azure Automation credential."
             }
         },
         "_artifactsLocation": {
@@ -36,18 +37,22 @@
         }
     },
     "variables": {
-        "schedulerRunbookName": "AzureQuotasMonitorSolution_Scheduler",
-        "schedulerRunbookPath": "[concat('/runbooks/',variables('schedulerRunbookName'),'.ps1')]",
-        "schedulerRunbookDescription": "Authenticates to Azure and list the subscriptions reachable by the service principal",
-        "schedulerRunbookUri": "[concat(parameters('_artifactsLocation'),variables('schedulerRunbookPath'),parameters('_artifactsLocationSasToken'))]",
-        "childQuotasRunbookName": "AzureQuotasMonitorSolution_Quotas_Child",
-        "childQuotasRunbookPath": "[concat('/runbooks/',variables('childQuotasRunbookName'),'.ps1')]",
+        "defaultSolutionName" : "AzureInventorySolution",
+        "customSolutionName": "[concat(parameters('deploymentPrefix'), '-',variables('defaultSolutionName'))]",
+        "parentRunbookName": "[concat(variables('customSolutionName'),'-Parent')]",
+        "parentRunbookPath": "/runbooks/AzureInventorySolution_Parent.ps1",
+        "parentRunbookDescription": "Authenticates to Azure and list the subscriptions reachable by the service principal",
+        "parentRunbookUri": "[concat(parameters('_artifactsLocation'),variables('parentRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "childQuotasRunbookName": "[concat(variables('customSolutionName'),'-Quotas-Child')]",
+        "childQuotasRunbookPath": "/runbooks/AzureInventorySolution_Quotas_Child.ps1",
         "childQuotasRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
         "childQuotasRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childQuotasRunbookPath'),parameters('_artifactsLocationSasToken'))]",
-        "childAssetsRunbookName": "AzureQuotasMonitorSolution_Assets_Child",
-        "childAssetsRunbookPath": "[concat('/runbooks/',variables('childAssetsRunbookName'),'.ps1')]",
+        "childAssetsRunbookName": "[concat(variables('customSolutionName'),'-Assets-Child')]",
+        "childAssetsRunbookPath": "/runbooks/AzureInventorySolution_Assets_Child.ps1",
         "childAssetsRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
         "childAssetsRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childAssetsRunbookPath'),parameters('_artifactsLocationSasToken'))]",
+        "omsWorkspaceKeyVariableName": "[concat(variables('customSolutionName'),'_WorkspaceId')]",
+        "omsWorkspaceIdVariableName": "[concat(variables('customSolutionName'),'_WorkspaceKey')]",
         "scheduleName": "AzureQuotasMonitorSolution_Scheduler",
         "jobScheduleName": "[guid(resourceGroup().id)]"
     },
@@ -60,12 +65,23 @@
             "scale": null,
             "properties": {
                 "sku":{
-                    "name":"Basic"
+                    "name":"Free"
                 }           },
             "dependsOn": []
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/',variables('schedulerRunbookName'))]",
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "name": "[parameters('logAnalyticsWorkspaceName')]",
+            "apiVersion": "2015-11-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+              "sku": {
+                "name": "Free"
+              }
+            }
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/AzureInventorySolution_CustomName')]",
             "type": "Microsoft.Automation/automationAccounts/runbooks",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
@@ -74,9 +90,29 @@
                 "runbookType": "PowerShell",
                 "logProgress": false,
                 "logVerbose": false,
-                "description": "[variables('schedulerRunbookDescription')]",
+                "description": "[variables('customSolutionName')]",
                 "publishContentLink": {
-                    "uri": "[variables('schedulerRunbookUri')]",
+                    "uri": "[variables('parentRunbookUri')]",
+                    "version": "1.0.0.0"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('automationAccountName'),'/',variables('parentRunbookName'))]",
+            "type": "Microsoft.Automation/automationAccounts/runbooks",
+            "apiVersion": "2015-10-31",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "properties": {
+                "runbookType": "PowerShell",
+                "logProgress": false,
+                "logVerbose": false,
+                "description": "[variables('parentRunbookDescription')]",
+                "publishContentLink": {
+                    "uri": "[variables('parentRunbookUri')]",
                     "version": "1.0.0.0"
                 }
             },
@@ -125,33 +161,35 @@
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_WorkspaceId')]",
+            "name": "[concat(parameters('automationAccountName'),'/',variables('omsWorkspaceIdVariableName'))]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
             ],
             "tags": {},
             "properties": {
                 "type": "string",
-                "value": "[concat('\"', parameters('logAnalyticsWorkspaceId'),'\"')]",
+                "value": "[concat('\"',reference(resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').customerId,'\"')]",
                 "description": "Unique ID pointing the targeted Log Analytics workspace",
                 "isEncrypted": false
             }
         },
         {
-            "name": "[concat(parameters('automationAccountName'),'/AzureQuotasMonitorSolution_WorkspaceKey')]",
+            "name": "[concat(parameters('automationAccountName'),'/',variables('omsWorkspaceKeyVariableName'))]",
             "type": "Microsoft.Automation/automationAccounts/variables",
             "apiVersion": "2015-10-31",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]"
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
             ],
             "tags": {},
             "properties": {
                 "type": "string",
-                "value": "[concat('\"', parameters('logAnalyticsWorkspaceKey'),'\"')]",
+                "value": "[concat('\"',listKeys(resourceId('Microsoft.OperationalInsights/workspaces/', parameters('logAnalyticsWorkspaceName')), '2015-11-01-preview').primarySharedKey,'\"')]",
                 "description": "Workspace Key used to push data to the targeted Log Analytics workspace",
                 "isEncrypted": true
             }
@@ -180,7 +218,7 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName'))]",
-                "[concat(resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName')), '/runbooks/', variables('schedulerRunbookName'))]",
+                "[concat(resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName')), '/runbooks/', variables('parentRunbookName'))]",
                 "[concat(resourceID('Microsoft.Automation/automationAccounts', parameters('automationAccountName')), '/schedules/', variables('scheduleName'))]"
             ],
             "tags": {},
@@ -189,7 +227,7 @@
                     "name": "[variables('scheduleName')]"
                   },
                   "runbook": {
-                    "name": "[variables('schedulerRunbookName')]"
+                    "name": "[variables('parentRunbookName')]"
                   }
             }
         }

@@ -1,6 +1,6 @@
 <#
     .DESCRIPTION
-        This child runbook gets detailed information about Azure quotas for a specific subscription, and sends it to Operations Management Suite (OMS)
+        This child runbook gets detailed information about Azure assets for a specific subscription, and sends it to Operations Management Suite (OMS)
 
     .NOTES
         AUTHOR: Baptiste Ohanes
@@ -20,7 +20,7 @@ Param(
 
 #############
 # Functions #
-#############get-azure
+#############
 
 # Create the function to create the authorization signature
 Function Build-Signature ($customerId, $sharedKey, $date, $contentLength, $method, $contentType, $resource)
@@ -77,8 +77,8 @@ Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType, $timeGe
 
 # Set context for child script execution
 
-$workspaceId = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceId'
-$workspaceKey = Get-AutomationVariable -Name 'AzureQuotasMonitorSolution_WorkspaceKey'
+$workspaceId = Get-AutomationVariable -Name ($customSolutionName + "_WorkspaceId")
+$workspaceKey = Get-AutomationVariable -Name ($customSolutionName + "_WorkspaceKey")
 
 Write-Output "The following context will be used:"
 Write-Output "Subscription Name: $subscriptionName"
@@ -86,7 +86,7 @@ Write-Output "OMS Workspace ID: $workspaceId"
 
 # Specify the name of the record type that you'll be creating and the field with the created time for the records
 
-$LogType = "AzureQuotaMonitorSolution"
+$LogType = "AzureInventorySolution_Assets"
 $TimeStampField = "Time"
 
 # Connect to the subscription
@@ -114,65 +114,69 @@ catch {
     }
 }
 
-
 # Execution context definition
 
 $azureLocations = Get-AzureRmLocation
 $currentDate = [System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:00Z")
 
-# Gets the virtual machine core count usage for all locations
+# Gets the virtual machine usage for all locations
 
-$computeResult = foreach ($location in $azureLocations) {
-    $location | Get-AzureRmVMUsage -ErrorAction SilentlyContinue |
+$computeResult = Get-AzureRmVM -ErrorAction SilentlyContinue |
         Select-Object -Property `
-    @{N = 'Provider'; E = {'Compute'}}, `
+    @{N = 'Provider'; E = {'Microsoft.Compute/VirtualMachines'}}, `
     @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
-    @{N = 'subscriptionId'; E = {$subscriptionId}}, `
-    @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
-    @{N = 'Limit'; E = {$_.Limit}}, `
-    @{N = 'Location'; E = {$location.Location}}, `
-    @{N = 'Name'; E = {$_.Name.Value}}, `
-    @{N = 'Unit'; E = {$_.Unit}}, `
+    @{N = 'SubscriptionId'; E = {$subscriptionId}}, `
+    @{N = 'ResourceGroup'; E = {$_.ResourceGroupName}}, `
+    @{N = 'Name'; E = {$_.Name}}, `
+    @{N = 'Location'; E = {($_.Location).ToLower()}}, `
+    @{N = 'VMLicenseType'; E = {$_.LicenseType}}, `
+    @{N = 'VMProvisioningState'; E = {$_.ProvisioningState}}, `
+    @{N = 'VMOStype'; E = {$_.storageprofile.OsDisk.OStype.toString()}}, `
+    @{N = 'VMNumberOfDataDisks'; E = {$_.storageprofile.DataDisks.count}}, `
+    @{N = 'VMNumberOfNICs'; E = {$_.NetworkProfile.NetworkInterfaces.Count}}, `
+    @{N = 'VMsize'; E = {$_.HardwareProfile.VmSize}}, `
     @{N = 'Time'; E = {$currentDate}}
-}
+
 $computeJson = $computeResult | ConvertTo-Json -Compress
 Write-Output $computeJson
 
-# Gets the Storage resource usage
+# Gets the network usage for all locations
 
-$storageResult = Get-AzureRmStorageUsage -ErrorAction SilentlyContinue |
-    Select-Object -Property `
-@{N = 'Provider'; E = {'Storage'}}, `
-@{N = 'SubscriptionName'; E = {$subscriptionName}}, `
-@{N = 'subscriptionId'; E = {$subscriptionId}}, `
-@{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
-@{N = 'Limit'; E = {$_.Limit}}, `
-@{N = 'Location'; E = {'global'}}, `
-@{N = 'Name'; E = {$_.Name}}, `
-@{N = 'Unit'; E = {'Count'}}, `
-@{N = 'Time'; E = {$currentDate}}
-$storageJson = $storageResult | ConvertTo-Json -Compress
-Write-Output $storageJson
-
-# Lists network usages for all locations
-
-$networkResult = foreach ($location in $azureLocations) {
-    $location | Get-AzureRmNetworkUsage -ErrorAction SilentlyContinue |
+$networkResult = Get-AzureRmNetworkInterface -ErrorAction SilentlyContinue |
         Select-Object -Property `
-    @{N = 'Provider'; E = {'Network'}}, `
+    @{N = 'Provider'; E = {'Microsoft.Network/NetworkInterfaces'}}, `
     @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
-    @{N = 'subscriptionId'; E = {$subscriptionId}}, `
-    @{N = 'CurrentValue'; E = {$_.CurrentValue}}, `
-    @{N = 'Limit'; E = {$_.Limit}}, `
-    @{N = 'Location'; E = {$location.Location}}, `
-    @{N = 'Name'; E = {$_.Name.Value}}, `
-    @{N = 'Unit'; E = {'Count'}}, `
+    @{N = 'SubscriptionId'; E = {$subscriptionId}}, `
+    @{N = 'ResourceGroup'; E = {$_.ResourceGroupName}}, `
+    @{N = 'Name'; E = {$_.Name}}, `
+    @{N = 'Location'; E = {$_.Location}}, `
+    @{N = 'NICAttachedTo'; E = {($_.VirtualMachine.id.split("/"))[-1]}}, `
+    @{N = 'NICNetworkSecurityGroup'; E = {($_.NetworkSecurityGroup.id.split("/"))[-1]}}, `
     @{N = 'Time'; E = {$currentDate}}
-}
+
 $networkJson = $networkResult | ConvertTo-Json -Compress
 Write-Output $networkJson
 
+# Gets the managed disks usage for all locations
+
+$storageResult = Get-AzureRmDisk -ErrorAction SilentlyContinue |
+        Select-Object -Property `
+    @{N = 'Provider'; E = {'Microsoft.Compute/Disks'}}, `
+    @{N = 'SubscriptionName'; E = {$subscriptionName}}, `
+    @{N = 'SubscriptionId'; E = {$subscriptionId}}, `
+    @{N = 'ResourceGroup'; E = {$_.ResourceGroupName}}, `
+    @{N = 'Name'; E = {$_.Name}}, `
+    @{N = 'Location'; E = {$_.Location}}, `
+    @{N = 'DiskAttachedTo'; E = {($_.ManagedBy.split("/"))[-1]}}, `
+    @{N = 'DiskSKU'; E = {$_.SKU.name}}, `
+    @{N = 'DiskSizeInGB'; E = {$_.DiskSizeGB}}, `
+    @{N = 'Time'; E = {$currentDate}}
+
+$storageJson = $storageResult | ConvertTo-Json -Compress
+Write-Output $storageJson
+
+
 # Submit the data to the API endpoint
-Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($storageJson)) -logType $logType -timeGeneratedField $timeStampField
 Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($computeJson)) -logType $logType -timeGeneratedField $timeStampField
 Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($networkJson)) -logType $logType -timeGeneratedField $timeStampField
+Post-LogAnalyticsData -customerId $workspaceId -sharedKey $workspaceKey -body ([System.Text.Encoding]::UTF8.GetBytes($storageJson)) -logType $logType -timeGeneratedField $timeStampField
