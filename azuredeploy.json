@@ -146,7 +146,7 @@
             "tags": {},
             "properties": {
                 "type": "string",
-                "value": "[parameters('customDeploymentPrefix')]",
+                "value": "[concat('\"',parameters('customDeploymentPrefix'),'\"')]",
                 "description": "Custom name given for the solution",
                 "isEncrypted": false
             },
