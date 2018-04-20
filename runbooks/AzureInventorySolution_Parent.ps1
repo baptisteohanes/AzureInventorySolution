@@ -16,10 +16,12 @@
 # Global context definiton
 
 $connectionName = "AzureRunAsConnection"
-$customSolutionName = "AzureInventorySolution_CustomName"
-$childQuotasRunbookName = ($customSolutionName + "-Quotas-Child")
-$childAssetsRunbookName = ($customSolutionName + "-Assets-Child")
-$workspaceId = Get-AutomationVariable -Name ($customSolutionName + "_WorkspaceId")
+$customDeploymentPrefix = "AzureInventorySolution_CustomDeploymentPrefix"
+$customSolutionNameForScripts = ($customDeploymentprefix + "-AzureInventorySolution")
+$customSolutionNameForVariables = ($customDeploymentprefix + "_AzureInventorySolution")
+$childQuotasRunbookName = ($customSolutionNameForScripts + "-Quotas-Child")
+$childAssetsRunbookName = ($customSolutionNameForScripts + "-Assets-Child")
+$workspaceId = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceId")
 
 Write-Output "Following parameters will be used :"
 Write-Output ("Azure Automation connection: "+ $connectionName)
