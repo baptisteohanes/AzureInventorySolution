@@ -49,8 +49,8 @@
         "childAssetsRunbookPath": "/runbooks/AzureInventorySolution_Assets_Child.ps1",
         "childAssetsRunbookDescription": "Authenticates to Azure subscription, gather the quotas for the subscription and push it to OMS workspace.",
         "childAssetsRunbookUri": "[concat(parameters('_artifactsLocation'),variables('childAssetsRunbookPath'),parameters('_artifactsLocationSasToken'))]",
-        "omsWorkspaceKeyVariableName": "[concat(parameters('customDeploymentPrefix'), '_', 'AzureInventorySolution', '_WorkspaceId')]",
-        "omsWorkspaceIdVariableName": "[concat(parameters('customDeploymentPrefix'), '_', 'AzureInventorySolution', '_WorkspaceKey')]",
+        "omsWorkspaceIdVariableName": "[concat(parameters('customDeploymentPrefix'), '_', 'AzureInventorySolution', '_WorkspaceId')]",
+        "omsWorkspaceKeyVariableName": "[concat(parameters('customDeploymentPrefix'), '_', 'AzureInventorySolution', '_WorkspaceKey')]",
         "scheduleName": "AzureQuotasMonitorSolution_Scheduler",
         "jobScheduleName": "[guid(subscription().subscriptionId, resourceGroup().id, deployment().name)]"
     },
