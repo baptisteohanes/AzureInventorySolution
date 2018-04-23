@@ -15,7 +15,8 @@
 
 Param(
     [Parameter(Mandatory = $true)] [string] $subscriptionId,
-    [Parameter(Mandatory = $true)] [string] $subscriptionName
+    [Parameter(Mandatory = $true)] [string] $subscriptionName,
+    [Parameter(Mandatory = $true)] [string] $jobCorrelationId
 )
 
 #############
@@ -85,11 +86,12 @@ $workspaceKey = Get-AutomationVariable -Name ($customSolutionNameForVariables + 
 Write-Output "The following context will be used:"
 Write-Output "Subscription Name: $subscriptionName"
 Write-Output "OMS Workspace ID: $workspaceId"
+Write-Output "Current Job Correlation ID: $jobCorrelationId"
 
 # Specify the name of the record type that you'll be creating and the field with the created time for the records
 
-$LogType = "AzureInventorySolution_Assets"
-$TimeStampField = "Time"
+$logType = "AzureInventorySolution_Assets"
+$timeStampField = "Time"
 
 # Connect to the subscription
 
@@ -137,6 +139,7 @@ $computeResult = Get-AzureRmVM -ErrorAction SilentlyContinue |
     @{N = 'VMNumberOfDataDisks'; E = {$_.storageprofile.DataDisks.count}}, `
     @{N = 'VMNumberOfNICs'; E = {$_.NetworkProfile.NetworkInterfaces.Count}}, `
     @{N = 'VMsize'; E = {$_.HardwareProfile.VmSize}}, `
+    @{N = 'JobCorrelationId'; E = {$jobCorrelationId}}, `
     @{N = 'Time'; E = {$currentDate}}
 
 $computeJson = $computeResult | ConvertTo-Json -Compress
@@ -154,6 +157,7 @@ $networkResult = Get-AzureRmNetworkInterface -ErrorAction SilentlyContinue |
     @{N = 'Location'; E = {$_.Location}}, `
     @{N = 'NICAttachedTo'; E = {($_.VirtualMachine.id.split("/"))[-1]}}, `
     @{N = 'NICNetworkSecurityGroup'; E = {($_.NetworkSecurityGroup.id.split("/"))[-1]}}, `
+    @{N = 'JobCorrelationId'; E = {$jobCorrelationId}}, `
     @{N = 'Time'; E = {$currentDate}}
 
 $networkJson = $networkResult | ConvertTo-Json -Compress
@@ -172,6 +176,7 @@ $storageResult = Get-AzureRmDisk -ErrorAction SilentlyContinue |
     @{N = 'DiskAttachedTo'; E = {($_.ManagedBy.split("/"))[-1]}}, `
     @{N = 'DiskSKU'; E = {$_.SKU.name}}, `
     @{N = 'DiskSizeInGB'; E = {$_.DiskSizeGB}}, `
+    @{N = 'JobCorrelationId'; E = {$jobCorrelationId}}, `
     @{N = 'Time'; E = {$currentDate}}
 
 $storageJson = $storageResult | ConvertTo-Json -Compress

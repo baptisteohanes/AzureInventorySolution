@@ -15,7 +15,8 @@
 
 Param(
     [Parameter(Mandatory = $true)] [string] $subscriptionId,
-    [Parameter(Mandatory = $true)] [string] $subscriptionName
+    [Parameter(Mandatory = $true)] [string] $subscriptionName,
+    [Parameter(Mandatory = $true)] [string] $jobCorrelationId
 )
 
 #############
@@ -85,6 +86,7 @@ $workspaceKey = Get-AutomationVariable -Name ($customSolutionNameForVariables + 
 Write-Output "The following context will be used:"
 Write-Output "Subscription Name: $subscriptionName"
 Write-Output "OMS Workspace ID: $workspaceId"
+Write-Output "Current Job Correlation ID: $jobCorrelationId"
 
 # Specify the name of the record type that you'll be creating and the field with the created time for the records
 
@@ -135,6 +137,7 @@ $computeResult = foreach ($location in $azureLocations) {
     @{N = 'Location'; E = {$location.Location}}, `
     @{N = 'Name'; E = {$_.Name.Value}}, `
     @{N = 'Unit'; E = {$_.Unit}}, `
+    @{N = 'JobCorrelationId'; E = {$jobCorrelationIdv}}, `
     @{N = 'Time'; E = {$currentDate}}
 }
 $computeJson = $computeResult | ConvertTo-Json -Compress
@@ -152,7 +155,9 @@ $storageResult = Get-AzureRmStorageUsage -ErrorAction SilentlyContinue |
 @{N = 'Location'; E = {'global'}}, `
 @{N = 'Name'; E = {$_.Name}}, `
 @{N = 'Unit'; E = {'Count'}}, `
+@{N = 'JobCorrelationId'; E = {$jobCorrelationId}}, `
 @{N = 'Time'; E = {$currentDate}}
+
 $storageJson = $storageResult | ConvertTo-Json -Compress
 Write-Output $storageJson
 
@@ -169,6 +174,7 @@ $networkResult = foreach ($location in $azureLocations) {
     @{N = 'Location'; E = {$location.Location}}, `
     @{N = 'Name'; E = {$_.Name.Value}}, `
     @{N = 'Unit'; E = {'Count'}}, `
+    @{N = 'JobCorrelationId'; E = {$jobCorrelationId}}, `
     @{N = 'Time'; E = {$currentDate}}
 }
 $networkJson = $networkResult | ConvertTo-Json -Compress

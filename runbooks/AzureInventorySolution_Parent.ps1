@@ -22,15 +22,18 @@ $customSolutionNameForVariables = ($customDeploymentprefix + "_AzureInventorySol
 $childQuotasRunbookName = ($customSolutionNameForScripts + "-Quotas-Child")
 $childAssetsRunbookName = ($customSolutionNameForScripts + "-Assets-Child")
 $workspaceId = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceId")
+$jobCorrelationId = New-Guid
 
 Write-Output "Following parameters will be used :"
 Write-Output ("Azure Automation connection: "+ $connectionName)
 Write-Output ("Child runbook name for quotas: "+ $childQuotasRunbookName)
 Write-Output ("Child runbook name for assets: "+ $childAssetsRunbookName)
 Write-Output "OMS Workspace Id: $workspaceId"
-Write-Output "Trying to connect to the master subscription..."
+Write-Output ("Job Correlation Id: "+ $jobCorrelationId)
 
 # Connect to Azure
+
+Write-Output "Trying to connect to the master subscription..."
 
 try
 {
@@ -71,7 +74,7 @@ foreach($subscription in $subscriptions){
 Write-Output "Launching analyze jobs:"
 
 foreach($subscription in $subscriptions){
-    $params = @{"subscriptionId"=$subscription.Id; "subscriptionName"=$subscription.Name}
+    $params = @{"subscriptionId"=$subscription.Id; "subscriptionName"=$subscription.Name; "jobCorrelationId"=$jobCorrelationId}
     Start-AutomationRunbook -Name $childQuotasRunbookName -Parameters $params
     Start-AutomationRunbook -Name $childAssetsRunbookName -Parameters $params
     
