@@ -16,7 +16,7 @@
 # Global context definiton
 
 $connectionName = "AzureRunAsConnection"
-$customDeploymentPrefix = "AzureInventorySolution_CustomDeploymentPrefix"
+$customDeploymentPrefix = Get-AutomationVariable "AzureInventorySolution_CustomDeploymentPrefix"
 $customSolutionNameForScripts = ($customDeploymentprefix + "-AzureInventorySolution")
 $customSolutionNameForVariables = ($customDeploymentprefix + "_AzureInventorySolution")
 $childQuotasRunbookName = ($customSolutionNameForScripts + "-Quotas-Child")

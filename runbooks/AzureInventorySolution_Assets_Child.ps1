@@ -77,7 +77,7 @@ Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType, $timeGe
 
 # Set context for child script execution
 
-$customDeploymentPrefix = "AzureInventorySolution_CustomDeploymentPrefix"
+$customDeploymentPrefix = Get-AutomationVariable "AzureInventorySolution_CustomDeploymentPrefix"
 $customSolutionNameForVariables = ($customDeploymentprefix + "_AzureInventorySolution")
 $workspaceId = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceId")
 $workspaceId = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceKey")

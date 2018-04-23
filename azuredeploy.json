@@ -22,7 +22,7 @@
         },
         "_artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/baptisteohanes/AzureQuotasMonitoring/master",
+            "defaultValue": "https://raw.githubusercontent.com/baptisteohanes/AzureInventorySolution/master",
             "metadata": {
                 "description": "The base URI where artifacts required by this template are located, WITHOUT a / at the end"
             }
