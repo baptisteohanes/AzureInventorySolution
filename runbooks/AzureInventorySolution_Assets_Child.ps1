@@ -80,7 +80,7 @@ Function Post-LogAnalyticsData($customerId, $sharedKey, $body, $logType, $timeGe
 $customDeploymentPrefix = Get-AutomationVariable "AzureInventorySolution_CustomDeploymentPrefix"
 $customSolutionNameForVariables = ($customDeploymentprefix + "_AzureInventorySolution")
 $workspaceId = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceId")
-$workspaceId = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceKey")
+$workspaceKey = Get-AutomationVariable -Name ($customSolutionNameForVariables + "_WorkspaceKey")
 
 Write-Output "The following context will be used:"
 Write-Output "Subscription Name: $subscriptionName"
